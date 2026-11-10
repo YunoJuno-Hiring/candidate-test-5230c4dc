@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Task B — Monthly Billing Run: Implementation Plan</title>
+<style>
+  :root {
+    --ink: #1e293b;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --bg: #ffffff;
+    --panel: #f8fafc;
+    --accent: #4f46e5;
+    --accent-soft: #eef2ff;
+    --warn: #b45309;
+    --warn-soft: #fffbeb;
+    --ok: #047857;
+    --ok-soft: #ecfdf5;
+    --danger: #b91c1c;
+    --danger-soft: #fef2f2;
+    --code-bg: #0f172a;
+    --code-ink: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 20px 80px;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 900px; margin: 0 auto; }
+  header.top {
+    border-bottom: 1px solid var(--line);
+    padding: 44px 0 24px;
+    margin-bottom: 32px;
+  }
+  header.top .kicker {
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  h1 { font-size: 30px; line-height: 1.25; margin: 8px 0 10px; }
+  h2 {
+    font-size: 22px;
+    margin: 46px 0 12px;
+    padding-top: 18px;
+    border-top: 2px solid var(--line);
+  }
+  h3 { font-size: 17px; margin: 28px 0 8px; }
+  h4 { font-size: 15px; margin: 20px 0 6px; color: var(--ink); }
+  p, li { color: var(--ink); }
+  ul, ol { padding-left: 24px; }
+  li { margin: 5px 0; }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13.5px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  pre {
+    background: var(--code-bg);
+    color: var(--code-ink);
+    padding: 16px 18px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 14px 0;
+  }
+  pre code { background: none; border: none; padding: 0; color: inherit; font-size: 13px; }
+  pre .c { color: #94a3b8; }      /* comment */
+  pre .k { color: #c4b5fd; }      /* keyword */
+  pre .s { color: #86efac; }      /* string */
+  pre .add { color: #86efac; }    /* diff add */
+  pre .del { color: #fca5a5; }    /* diff del */
+  pre .h { color: #7dd3fc; }      /* diff hunk */
+  .callout {
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    margin: 16px 0;
+  }
+  .callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+  .callout.ok { border-color: var(--ok); background: var(--ok-soft); }
+  .callout.danger { border-color: var(--danger); background: var(--danger-soft); }
+  .callout p:first-child { margin-top: 0; }
+  .callout p:last-child { margin-bottom: 0; }
+  .callout .label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    color: var(--accent);
+  }
+  .callout.warn .label { color: var(--warn); }
+  .callout.ok .label { color: var(--ok); }
+  .callout.danger .label { color: var(--danger); }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 14px; }
+  th, td { text-align: left; border: 1px solid var(--line); padding: 8px 10px; vertical-align: top; }
+  th { background: var(--panel); font-weight: 600; font-size: 13px; }
+  .step {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 4px 22px 18px;
+    margin: 26px 0;
+    background: #fff;
+  }
+  .step > h3 {
+    margin: 18px 0 6px;
+    font-size: 18px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .step .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 7px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    flex: none;
+  }
+  .step .why {
+    background: var(--panel);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 10px 0 4px;
+    font-size: 14.5px;
+  }
+  .step .why strong { color: var(--accent); }
+  .file {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    color: var(--muted);
+    margin: 16px 0 -6px;
+  }
+  .file::before { content: "▸ "; color: var(--accent); }
+  .toc {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 22px;
+    font-size: 14.5px;
+  }
+  .toc ol { margin: 6px 0; }
+  .toc a { color: var(--accent); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    vertical-align: middle;
+  }
+  .pill.must { background: var(--danger-soft); color: var(--danger); }
+  .pill.opt { background: var(--warn-soft); color: var(--warn); }
+  .done { font-size: 15px; margin-left: 2px; }
+  .step.is-done { border-color: #a7f3d0; background: #fbfefc; }
+  .step.is-done > h3 { color: var(--ok); }
+  .muted { color: var(--muted); }
+  footer {
+    margin-top: 60px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<header class="top">
+  <div class="kicker">YunoJuno Fullstack Take-Home · Task B</div>
+  <h1>Monthly Billing Run — Implementation Plan</h1>
+  <p class="muted">
+    A step-by-step plan for the backend engineer. Each step states what to change, the reasoning
+    behind it, and the trade-off I accepted. Where a decision is genuinely optional it is flagged.
+  </p>
+</header>
+
+<div class="toc">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#brief">The brief, and what the git history adds</a></li>
+    <li><a href="#contract">The frontend contract you cannot break</a></li>
+    <li><a href="#decisions">Design decisions up front (and why)</a></li>
+    <li><a href="#steps">Implementation steps 1–11</a></li>
+    <li><a href="#tests">Test plan</a></li>
+    <li><a href="#manual">Manual verification</a></li>
+    <li><a href="#notes">What to write in CANDIDATE_NOTES.md</a></li>
+    <li><a href="#cut">Deliberately out of scope</a></li>
+  </ol>
+</div>
+
+<h2 id="brief">1. The brief, and what the git history adds</h2>
+
+<p>
+  The current README for Task B is deliberately terse. The commit
+  <code>e48c330 "give less direction on tasks"</code> stripped out the specifics. Those specifics are
+  still in history and they are the most useful part of the brief, so read them as authoritative:
+</p>
+
+<pre><code><span class="c">$ git show e48c330 -- README.md</span></code></pre>
+
+<table>
+  <thead>
+    <tr><th>Requirement (from history)</th><th>Status in current README</th><th>Verdict</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>An <code>Invoice</code> model — one per <strong>Company × Freelancer × month</strong>, with <strong>line items per approved entry</strong>, totals, period bounds, generation timestamp</td>
+      <td>Collapsed to "any supporting data models you think are appropriate"</td>
+      <td>Treat as the expected shape. It is the natural grain and it is what the UI implies.</td>
+    </tr>
+    <tr>
+      <td><strong>Idempotency.</strong> Re-running billing for the same month must not double-create. "This endpoint will get retried, scheduled, and accidentally clicked twice."</td>
+      <td>Dropped entirely</td>
+      <td><span class="pill must">Must do</span> — still named in "what we're looking for".</td>
+    </tr>
+    <tr>
+      <td><strong>Partial months.</strong> A billing run for March must behave correctly when a contract ran 12 Feb – 18 Mar.</td>
+      <td>Dropped entirely</td>
+      <td><span class="pill must">Must do</span> — see the trap in §3.</td>
+    </tr>
+    <tr>
+      <td>Delivery via email; "choose an approach: HTML or plain text, one email or two, and what the email contains"</td>
+      <td>Kept, minus the choice framing</td>
+      <td>Make an explicit, justified choice.</td>
+    </tr>
+    <tr>
+      <td>"Treat email as the transport, and model the invoice as if you might need to render it to PDF later."</td>
+      <td>Dropped</td>
+      <td>Justifies storing a snapshot of the rendered content rather than only live FKs.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout warn">
+  <span class="label">Read the brief this way</span>
+  <p>
+    The <em>graded</em> axes are unchanged and are stated in the current README: <em>data modelling,
+    idempotency thinking, transaction boundaries (what happens if the email send fails after the
+    invoice row is committed?), and what you choose to test.</em> The removed text is the
+    specification; the retained text is the rubric. Plan against both.
+  </p>
+</div>
+
+<h3>Current state of the code</h3>
+<ul>
+  <li><code>backend/billing/models.py</code> — comments only, no models.</li>
+  <li><code>backend/billing/views.py</code> — three stubs: <code>BillingRunView</code> returns a hardcoded
+      <code>{run_id: 'stub', invoices_generated: 0, status: 'completed'}</code>; <code>InvoiceListView</code>
+      returns <code>[]</code>; <code>InvoiceDetailView</code> returns 404.</li>
+  <li><code>backend/billing/urls.py</code> — routes already wired under <code>/api/</code>.</li>
+  <li><code>backend/billing/migrations/</code> — has <code>__init__.py</code> only, so this will be <code>0001_initial</code>.</li>
+  <li><code>backend/conftest.py</code> — has <code>northstar</code>, <code>meridian</code>, <code>admin_client</code>,
+      <code>freelancer_client</code>, <code>active_contract</code>, <code>other_contract</code>,
+      <code>submitted_entry</code> fixtures. Reuse them; add billing fixtures alongside.</li>
+  <li>Baseline test suite: <strong>41 passed</strong>. Keep it green.</li>
+</ul>
+
+<h2 id="contract">2. The frontend contract you cannot break</h2>
+
+<p>
+  The frontend is "fully wired" and is <em>not</em> in scope. That makes its TypeScript types a hard
+  interface specification. Read these three files before writing a line of Python:
+  <code>frontend/src/api/billing.ts</code>, <code>frontend/src/pages/Billing.tsx</code>,
+  <code>frontend/src/pages/InvoiceDetail.tsx</code>.
+</p>
+
+<h4>What the UI actually sends and reads</h4>
+<table>
+  <thead><tr><th>Call</th><th>Request</th><th>Response the UI consumes</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>POST /api/billing/runs/</code></td>
+      <td><code>{"month": "2026-05"}</code> — a single string, <strong>not</strong> year+month</td>
+      <td><code>BillingRunResult { run_id: string; invoices_generated: number; status: string }</code>.
+          Only <code>invoices_generated</code> is rendered, but return all three.</td>
+    </tr>
+    <tr>
+      <td><code>GET /api/invoices/?month=YYYY-MM</code></td>
+      <td>query param <code>month</code></td>
+      <td>An <strong>array</strong> (not a paginated envelope). Only <code>id</code> is rendered, but
+          send the useful summary fields anyway.</td>
+    </tr>
+    <tr>
+      <td><code>GET /api/invoices/&lt;id&gt;/</code></td>
+      <td>—</td>
+      <td>Any JSON object; the page pretty-prints it with <code>JSON.stringify</code>. A 404 renders a
+          dedicated "Invoice not found" state, so <strong>404 must stay 404</strong>.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout danger">
+  <span class="label">Do not do this</span>
+  <p>
+    Do not switch to DRF generic views with default pagination. The UI does
+    <code>invoicesQuery.data.map(...)</code> straight onto the response. A
+    <code>{count, results}</code> envelope is a silent runtime break. Return a plain list.
+  </p>
+</div>
+
+<div class="callout">
+  <span class="label">Why keep <code>APIView</code> instead of <code>ListAPIView</code></span>
+  <p>
+    The existing codebase uses hand-rolled <code>APIView</code> classes with inline role checks
+    (<code>contracts/views.py</code>). Matching that style keeps the diff idiomatic and avoids
+    introducing a second, competing convention in a small codebase. The response shapes above are
+    also easier to guarantee by hand.
+  </p>
+</div>
+
+<h2 id="decisions">3. Design decisions up front (and why)</h2>
+
+<h3>3.1 Money is computed in <code>Decimal</code>, never float</h3>
+<p>
+  <code>daily_rate</code> is <code>DecimalField(max_digits=8, decimal_places=2)</code> and
+  <code>hours</code> is <code>DecimalField(max_digits=5, decimal_places=2)</code>. Multiplying them
+  yields four decimal places (<code>7.50 × 600.00 = 4500.0000</code>), so every line amount must be
+  <code>.quantize(Decimal('0.01'))</code> before storage. Never round with <code>float()</code>; it
+  will drift on totals and it will bite you the first time a rate is <code>0.1</code>-ish.
+</p>
+
+<h3>3.2 The billing grain is Company × Freelancer × Month, and the key is a period, not a string</h3>
+<p>
+  One invoice per (company, freelancer, month) means a freelancer working for two companies in the
+  same month gets two invoices — correct, because the payer is the company. The natural unique key
+  is <code>(company, freelancer, period_start)</code>. Storing <code>period_start</code> as a real
+  <code>Date</code> (always the 1st) rather than a <code>"2026-05"</code> string means:
+</p>
+<ul>
+  <li>the database enforces the invariant, not application code;</li>
+  <li>date-range queries ("invoices in Q2") work without string parsing;</li>
+  <li>an index on <code>(company, period_start)</code> serves the list endpoint directly.</li>
+</ul>
+<p>Keep <code>period_end</code> too (last day of the month) so the invoice is self-describing and
+renderable without recomputing month lengths.</p>
+
+<h3>3.3 Idempotency: a database constraint, not a check-then-insert</h3>
+<p>
+  A <code>get_or_create</code> or an <code>if not exists</code> check races under concurrent
+  retries. The only reliable guard is a unique constraint, with the insert allowed to raise
+  <code>IntegrityError</code> and be treated as "already done". That is the difference between
+  idempotent and idempotent-under-load, and it is exactly the kind of thing the brief is probing.
+</p>
+
+<h3>3.4 Line items are a snapshot, not a join</h3>
+<p>
+  Each <code>InvoiceLineItem</code> stores <code>hours</code>, <code>daily_rate</code>, <code>amount</code>
+  and the source <code>date</code> <em>copied</em> from the timesheet entry, plus a nullable FK back
+  to the entry. Reasons:
+</p>
+<ul>
+  <li>An issued invoice must never change because someone later edits a timesheet or a contract rate.
+      That is an accounting requirement, and it is also what "model it as if you might render it to
+      PDF later" demands.</li>
+  <li>The FK is kept for traceability and for the "which entries were billed" question, but it is
+      <code>SET_NULL</code> so deleting a timesheet cannot cascade away invoice history.</li>
+</ul>
+
+<h3>3.5 Partial months: filter by <em>entry date</em>, never by contract dates</h3>
+<div class="callout warn">
+  <span class="label">The trap</span>
+  <p>
+    A tempting implementation is "find contracts overlapping the month, then bill them". That is
+    wrong. The unit of billing is the <strong>approved timesheet entry</strong>, and each entry has
+    its own <code>date</code>. A contract running 12 Feb – 18 Mar contributes to March only the
+    entries dated 1–18 Mar. Filtering on <code>TimesheetEntry.date</code> within the period handles
+    partial months, mid-month starts, mid-month ends, and contracts that start and end inside the
+    same month — all with one condition and no special cases.
+  </p>
+  <p>
+    Contract dates are then used only for the <em>narrative</em> on the invoice
+    (<code>contract_start</code>/<code>contract_end</code>) and for a sanity assertion in tests, never
+    for selection.
+  </p>
+</div>
+
+<h3>3.6 Transaction boundary: commit the invoice, then send email, then record the outcome</h3>
+<p>
+  The question "what happens if the email send fails after the invoice row is committed?" has three
+  possible answers. Pick one deliberately:
+</p>
+<table>
+  <thead><tr><th>Option</th><th>Consequence</th><th>Verdict</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Send email inside the transaction</td>
+      <td>DB rollback on SMTP failure, but an email may already have left the building and the
+          transaction is held open across a network call. Worst of both worlds.</td>
+      <td>Reject.</td>
+    </tr>
+    <tr>
+      <td>Send email after commit, no record</td>
+      <td>Invoice exists, nobody knows delivery failed, no retry path.</td>
+      <td>Reject.</td>
+    </tr>
+    <tr>
+      <td><strong>Commit invoice → attempt send → persist <code>delivery_status</code></strong></td>
+      <td>Invoice is the source of truth and always survives. Delivery is an explicitly tracked,
+          retryable side effect.</td>
+      <td><strong>Choose this.</strong></td>
+    </tr>
+  </tbody>
+</table>
+<p>
+  Concretely: wrap the invoice + line-item creation in <code>transaction.atomic()</code>; leave the
+  block; then send email and write <code>delivery_status</code>/<code>delivered_at</code>/
+  <code>delivery_error</code> in a second, separate write. A failure to email must never roll back an
+  invoice, and a failure to email must never make the run return 500 — the invoice was still created.
+</p>
+
+<h3>3.7 Invoice numbering</h3>
+<p>
+  Give each invoice a human-readable number (<code>INV-2026-05-0007</code>) that is unique and
+  derived from the period plus a per-period sequence. It is what finance will quote on the phone, and
+  it makes the email legible. Keep the integer PK as the API identifier so the frontend's
+  <code>/billing/invoices/&lt;id&gt;</code> route keeps working.
+</p>
+
+<h3>3.8 Email: two emails, one per recipient, plain text + HTML alternative</h3>
+<p>
+  The brief says the company's <code>billing_email</code> <em>and</em> the freelancer. Send
+  <strong>two separate messages</strong> rather than one with two recipients, because the two parties
+  must not see each other's addresses in <code>To:</code> — that is a data-leak smell in a real
+  product. Use <code>EmailMultiAlternatives</code> with a plain-text body and an HTML alternative:
+  plain text is the fallback that always renders, HTML is what makes it look like a real invoice.
+</p>
+<p>
+  The freelancer's address comes from <code>Freelancer.user.email</code> — note that
+  <code>FreelancerSerializer</code> deliberately does not expose it, so read it from the model, not
+  the serializer.
+</p>
+
+<h3>3.9 Authorisation</h3>
+<p>
+  The stubs only require <code>IsAuthenticated</code>. All three endpoints must be scoped to the
+  caller: a company admin sees only their own company's invoices; a freelancer sees only their own.
+  Reuse the existing <code>hasattr(user, 'company_admin')</code> / <code>hasattr(user, 'freelancer')</code>
+  pattern from <code>contracts/views.py</code> so the codebase stays consistent. Running billing is
+  an admin-only action and must return 403 for a freelancer.
+</p>
+
+<h2 id="steps">4. Implementation steps</h2>
+
+<div class="step is-done">
+  <h3><span class="num">1</span> Add the models <span class="done">✅</span></h3>
+  <div class="file">backend/billing/models.py</div>
+  <p>Replace the comment file with three models: the run, the invoice, the line item.</p>
+
+  <div class="why">
+    <strong>Why a <code>BillingRun</code> model at all?</strong> The endpoint returns a
+    <code>run_id</code>, so something must own it. More importantly, a run record is the audit trail
+    finance will ask for ("who ran May, when, how many invoices, did it fail?") and it is the natural
+    home for the run-level idempotency answer. It is cheap: one table, a few columns.
+  </div>
+
+<pre><code><span class="k">import</span> uuid
+<span class="k">from</span> decimal <span class="k">import</span> Decimal
+
+<span class="k">from</span> django.db <span class="k">import</span> models
+
+<span class="k">from</span> accounts.models <span class="k">import</span> Company, Freelancer
+<span class="k">from</span> contracts.models <span class="k">import</span> Contract, TimesheetEntry
+
+
+<span class="k">class</span> BillingRun(models.Model):
+    <span class="s">"""One invocation of the monthly billing run. Audit trail + run_id."""</span>
+    STATUS_RUNNING = <span class="s">'running'</span>
+    STATUS_COMPLETED = <span class="s">'completed'</span>
+    STATUS_FAILED = <span class="s">'failed'</span>
+    STATUS_CHOICES = [
+        (STATUS_RUNNING, <span class="s">'Running'</span>),
+        (STATUS_COMPLETED, <span class="s">'Completed'</span>),
+        (STATUS_FAILED, <span class="s">'Failed'</span>),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=<span class="k">False</span>)
+    period_start = models.DateField()
+    period_end = models.DateField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_RUNNING)
+    invoices_generated = models.PositiveIntegerField(default=0)
+    invoices_skipped = models.PositiveIntegerField(default=0)
+    triggered_by = models.ForeignKey(
+        <span class="s">'auth.User'</span>, null=<span class="k">True</span>, blank=<span class="k">True</span>,
+        on_delete=models.SET_NULL, related_name=<span class="s">'billing_runs'</span>,
+    )
+    created_at = models.DateTimeField(auto_now_add=<span class="k">True</span>)
+    completed_at = models.DateTimeField(null=<span class="k">True</span>, blank=<span class="k">True</span>)
+
+    <span class="k">class</span> Meta:
+        ordering = [<span class="s">'-created_at'</span>]
+
+    <span class="k">def</span> __str__(self):
+        <span class="k">return</span> f<span class="s">'Billing run {self.id} for {self.period_start:%Y-%m} ({self.status})'</span>
+
+
+<span class="k">class</span> Invoice(models.Model):
+    <span class="s">"""One invoice per Company x Freelancer x month."""</span>
+    STATUS_ISSUED = <span class="s">'issued'</span>
+    STATUS_VOID = <span class="s">'void'</span>
+    STATUS_CHOICES = [
+        (STATUS_ISSUED, <span class="s">'Issued'</span>),
+        (STATUS_VOID, <span class="s">'Void'</span>),
+    ]
+
+    DELIVERY_PENDING = <span class="s">'pending'</span>
+    DELIVERY_SENT = <span class="s">'sent'</span>
+    DELIVERY_FAILED = <span class="s">'failed'</span>
+    DELIVERY_CHOICES = [
+        (DELIVERY_PENDING, <span class="s">'Pending'</span>),
+        (DELIVERY_SENT, <span class="s">'Sent'</span>),
+        (DELIVERY_FAILED, <span class="s">'Failed'</span>),
+    ]
+
+    number = models.CharField(max_length=32, unique=<span class="k">True</span>)
+    company = models.ForeignKey(Company, on_delete=models.PROTECT, related_name=<span class="s">'invoices'</span>)
+    freelancer = models.ForeignKey(Freelancer, on_delete=models.PROTECT, related_name=<span class="s">'invoices'</span>)
+    billing_run = models.ForeignKey(
+        BillingRun, null=<span class="k">True</span>, on_delete=models.SET_NULL, related_name=<span class="s">'invoices'</span>,
+    )
+
+    <span class="c"># Period bounds — period_start is always the 1st. This is the idempotency key.</span>
+    period_start = models.DateField()
+    period_end = models.DateField()
+
+    <span class="c"># Narrative snapshot: contract dates as they were at generation time.</span>
+    contract_start = models.DateField(null=<span class="k">True</span>, blank=<span class="k">True</span>)
+    contract_end = models.DateField(null=<span class="k">True</span>, blank=<span class="k">True</span>)
+
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(<span class="s">'0.00'</span>))
+    tax = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(<span class="s">'0.00'</span>))
+    total = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal(<span class="s">'0.00'</span>))
+    currency = models.CharField(max_length=3, default=<span class="s">'GBP'</span>)
+
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_ISSUED)
+    delivery_status = models.CharField(max_length=10, choices=DELIVERY_CHOICES, default=DELIVERY_PENDING)
+    delivered_at = models.DateTimeField(null=<span class="k">True</span>, blank=<span class="k">True</span>)
+    delivery_error = models.TextField(blank=<span class="k">True</span>, default=<span class="s">''</span>)
+
+    created_at = models.DateTimeField(auto_now_add=<span class="k">True</span>)
+
+    <span class="k">class</span> Meta:
+        ordering = [<span class="s">'-period_start'</span>, <span class="s">'freelancer__name'</span>]
+        constraints = [
+            models.UniqueConstraint(
+                fields=[<span class="s">'company'</span>, <span class="s">'freelancer'</span>, <span class="s">'period_start'</span>],
+                name=<span class="s">'uniq_invoice_company_freelancer_period'</span>,
+            ),
+        ]
+        indexes = [models.Index(fields=[<span class="s">'company'</span>, <span class="s">'period_start'</span>])]
+
+    <span class="k">def</span> __str__(self):
+        <span class="k">return</span> f<span class="s">'{self.number} — {self.company.name} / {self.freelancer.name}'</span>
+
+
+<span class="k">class</span> InvoiceLineItem(models.Model):
+    <span class="s">"""A snapshot of one approved timesheet entry as billed."""</span>
+    invoice = models.ForeignKey(Invoice, on_delete=models.CASCADE, related_name=<span class="s">'line_items'</span>)
+    <span class="c"># SET_NULL: invoice history must survive timesheet deletion.</span>
+    timesheet_entry = models.ForeignKey(
+        TimesheetEntry, null=<span class="k">True</span>, blank=<span class="k">True</span>,
+        on_delete=models.SET_NULL, related_name=<span class="s">'invoice_line_items'</span>,
+    )
+    contract = models.ForeignKey(Contract, null=<span class="k">True</span>, on_delete=models.SET_NULL)
+
+    date = models.DateField()
+    description = models.CharField(max_length=255)
+    hours = models.DecimalField(max_digits=5, decimal_places=2)
+    daily_rate = models.DecimalField(max_digits=8, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    <span class="k">class</span> Meta:
+        ordering = [<span class="s">'date'</span>]
+
+    <span class="k">def</span> __str__(self):
+        <span class="k">return</span> f<span class="s">'{self.date} — {self.hours}h @ {self.daily_rate}'</span></code></pre>
+
+  <div class="callout">
+    <span class="label">Note on <code>tax</code></span>
+    <p>
+      There is no tax logic in the domain and inventing VAT rules would be out of scope. The field
+      exists at <code>0.00</code> so the invoice shape is complete and a later task can populate it
+      without a migration to the totals. Say so in the notes rather than silently omitting it.
+    </p>
+  </div>
+</div>
+
+<div class="step is-done">
+  <h3><span class="num">2</span> Generate and inspect the migration <span class="done">✅</span></h3>
+  <div class="file">backend/billing/migrations/0001_initial.py <span class="muted">(generated)</span></div>
+<pre><code>cd backend
+uv run python manage.py makemigrations billing
+uv run python manage.py migrate</code></pre>
+  <p>
+    Check the generated file contains the <code>UniqueConstraint</code> and the index. If
+    <code>makemigrations</code> asks for a default on a non-nullable field, you have made a field
+    non-nullable that should be nullable — fix the model rather than accepting a one-off default.
+  </p>
+</div>
+
+<div class="step is-done">
+  <h3><span class="num">3</span> Put the billing logic in a service, not a view <span class="done">✅</span></h3>
+  <div class="file">backend/billing/services.py <span class="muted">(new)</span></div>
+  <div class="why">
+    <strong>Why a service module?</strong> The run has to be callable from three places: the HTTP
+    endpoint, a future scheduled job (<code>manage.py</code> command), and tests. Putting it in the
+    view makes the second impossible without faking a request. A plain function with a clear contract
+    is also far easier to unit-test than an <code>APIView</code>.
+  </div>
+
+<pre><code><span class="k">import</span> calendar
+<span class="k">import</span> datetime
+<span class="k">from</span> collections <span class="k">import</span> defaultdict
+<span class="k">from</span> decimal <span class="k">import</span> Decimal
+
+<span class="k">from</span> django.db <span class="k">import</span> IntegrityError, transaction
+<span class="k">from</span> django.utils <span class="k">import</span> timezone
+
+<span class="k">from</span> contracts.models <span class="k">import</span> TimesheetEntry
+
+<span class="k">from</span> .models <span class="k">import</span> BillingRun, Invoice, InvoiceLineItem
+
+MONEY = Decimal(<span class="s">'0.01'</span>)
+
+
+<span class="k">def</span> month_bounds(month: str) -&gt; tuple[datetime.date, datetime.date]:
+    <span class="s">"""'2026-05' -&gt; (date(2026,5,1), date(2026,5,31)). Raises ValueError on bad input."""</span>
+    <span class="k">try</span>:
+        year_s, month_s = month.split(<span class="s">'-'</span>)
+        year, mon = int(year_s), int(month_s)
+        start = datetime.date(year, mon, 1)
+    <span class="k">except</span> (ValueError, AttributeError):
+        <span class="k">raise</span> ValueError(<span class="s">'month must be in YYYY-MM format'</span>)
+    last_day = calendar.monthrange(year, mon)[1]
+    <span class="k">return</span> start, datetime.date(year, mon, last_day)
+
+
+<span class="k">def</span> run_billing(month: str, *, triggered_by=<span class="k">None</span>) -&gt; BillingRun:
+    <span class="s">"""Create one invoice per (company, freelancer) with approved entries in `month`.
+
+    Idempotent: any (company, freelancer) that already has an invoice for this
+    period is skipped, so re-running is safe and returns 0 new invoices.
+    """</span>
+    period_start, period_end = month_bounds(month)
+
+    run = BillingRun.objects.create(
+        period_start=period_start, period_end=period_end, triggered_by=triggered_by,
+    )
+
+    <span class="c"># One query, filtered on ENTRY date. This is what makes partial months correct.</span>
+    entries = (
+        TimesheetEntry.objects
+        .filter(
+            status=TimesheetEntry.STATUS_APPROVED,
+            date__gte=period_start,
+            date__lte=period_end,
+        )
+        .select_related(<span class="s">'contract'</span>, <span class="s">'contract__company'</span>, <span class="s">'contract__freelancer'</span>)
+        .order_by(<span class="s">'date'</span>, <span class="s">'id'</span>)
+    )
+
+    grouped = defaultdict(list)
+    <span class="k">for</span> entry <span class="k">in</span> entries:
+        grouped[(entry.contract.company_id, entry.contract.freelancer_id)].append(entry)
+
+    created, skipped = [], 0
+    <span class="k">for</span> (company_id, freelancer_id), group <span class="k">in</span> grouped.items():
+        <span class="k">try</span>:
+            <span class="k">with</span> transaction.atomic():
+                invoice = _create_invoice(
+                    run=run, group=group,
+                    period_start=period_start, period_end=period_end,
+                )
+        <span class="k">except</span> IntegrityError:
+            <span class="c"># Unique constraint fired: another run already billed this pair.</span>
+            skipped += 1
+            <span class="k">continue</span>
+        created.append(invoice)
+
+    run.invoices_generated = len(created)
+    run.invoices_skipped = skipped
+    run.status = BillingRun.STATUS_COMPLETED
+    run.completed_at = timezone.now()
+    run.save(update_fields=[<span class="s">'invoices_generated'</span>, <span class="s">'invoices_skipped'</span>, <span class="s">'status'</span>, <span class="s">'completed_at'</span>])
+
+    <span class="c"># Delivery happens AFTER the rows are committed — see step 6.</span>
+    <span class="k">from</span> .emails <span class="k">import</span> deliver_invoice
+    <span class="k">for</span> invoice <span class="k">in</span> created:
+        deliver_invoice(invoice)
+
+    <span class="k">return</span> run
+
+
+<span class="k">def</span> _create_invoice(*, run, group, period_start, period_end) -&gt; Invoice:
+    first = group[0]
+    contract = first.contract
+    company, freelancer = contract.company, contract.freelancer
+
+    invoice = Invoice.objects.create(
+        number=<span class="s">''</span>,  <span class="c"># set below, needs the PK</span>
+        company=company,
+        freelancer=freelancer,
+        billing_run=run,
+        period_start=period_start,
+        period_end=period_end,
+        contract_start=contract.start_date,
+        contract_end=contract.end_date,
+    )
+
+    subtotal = Decimal(<span class="s">'0.00'</span>)
+    <span class="k">for</span> entry <span class="k">in</span> group:
+        amount = (entry.hours * entry.contract.daily_rate).quantize(MONEY)
+        subtotal += amount
+        InvoiceLineItem.objects.create(
+            invoice=invoice,
+            timesheet_entry=entry,
+            contract=entry.contract,
+            date=entry.date,
+            description=f<span class="s">'Professional services — {entry.date:%d %b %Y}'</span>,
+            hours=entry.hours,
+            daily_rate=entry.contract.daily_rate,
+            amount=amount,
+        )
+
+    invoice.subtotal = subtotal
+    invoice.total = subtotal + invoice.tax
+    invoice.number = f<span class="s">'INV-{period_start:%Y-%m}-{invoice.pk:05d}'</span>
+    invoice.save(update_fields=[<span class="s">'subtotal'</span>, <span class="s">'total'</span>, <span class="s">'number'</span>])
+    <span class="k">return</span> invoice</code></pre>
+
+  <div class="callout warn">
+    <span class="label">Two subtleties that matter</span>
+    <p>
+      <strong>1. <code>IntegrityError</code> must be caught <em>outside</em> the <code>atomic()</code>
+      block.</strong> Once an <code>IntegrityError</code> has fired inside a transaction, that
+      transaction is broken; catching it inside and continuing raises
+      <code>TransactionManagementError</code>. Note the <code>try/except</code> is wrapped around the
+      <code>with</code>, not inside it.
+    </p>
+    <p>
+      <strong>2. Per-pair atomicity, not whole-run atomicity.</strong> Wrapping the entire loop in one
+      transaction means one bad pair rolls back every other invoice. Billing is a batch job; it should
+      be resumable and partially successful. Committing per invoice also keeps transactions short,
+      which matters once this is scheduled against a real database.
+    </p>
+  </div>
+</div>
+
+<div class="step is-done">
+  <h3><span class="num">4</span> Render the invoice content once, and reuse it for email and detail <span class="done">✅</span></h3>
+  <div class="file">backend/billing/emails.py <span class="muted">(new)</span></div>
+  <div class="why">
+    <strong>Why a renderer separate from the sender?</strong> "Model it as if you might need to render
+    it to PDF later" means the invoice content should be a pure function of the invoice row, not
+    tangled into SMTP. A <code>render_invoice_text(invoice)</code> /
+    <code>render_invoice_html(invoice)</code> pair can later be swapped for a PDF renderer without
+    touching delivery.
+  </div>
+
+<pre><code><span class="k">from</span> django.conf <span class="k">import</span> settings
+<span class="k">from</span> django.core.mail <span class="k">import</span> EmailMultiAlternatives
+<span class="k">from</span> django.utils <span class="k">import</span> timezone
+
+<span class="k">from</span> .models <span class="k">import</span> Invoice
+
+
+<span class="k">def</span> invoice_recipients(invoice):
+    <span class="s">"""Company billing address + the freelancer's own address.
+
+    FreelancerSerializer deliberately does not expose the email, so read the
+    User relation directly rather than going through the serializer.
+    """</span>
+    <span class="k">return</span> [invoice.company.billing_email, invoice.freelancer.user.email]
+
+
+<span class="k">def</span> render_invoice_text(invoice) -&gt; str:
+    lines = [
+        f<span class="s">'Invoice {invoice.number}'</span>,
+        f<span class="s">'Period: {invoice.period_start:%d %b %Y} – {invoice.period_end:%d %b %Y}'</span>,
+        f<span class="s">'Billed to: {invoice.company.name}'</span>,
+        f<span class="s">'Freelancer: {invoice.freelancer.name}'</span>,
+        <span class="s">''</span>,
+    ]
+    <span class="k">for</span> li <span class="k">in</span> invoice.line_items.all():
+        lines.append(
+            f<span class="s">'{li.date:%d %b %Y}  {li.hours}h x {li.daily_rate} = {li.amount}'</span>
+        )
+    lines += [
+        <span class="s">''</span>,
+        f<span class="s">'Subtotal: {invoice.subtotal}'</span>,
+        f<span class="s">'Total:    {invoice.total} {invoice.currency}'</span>,
+    ]
+    <span class="k">return</span> <span class="s">'\n'</span>.join(lines)
+
+
+<span class="k">def</span> deliver_invoice(invoice) -&gt; <span class="k">None</span>:
+    <span class="s">"""Send the invoice to both parties. Never raises — records the outcome.
+
+    Called AFTER the invoice transaction has committed, so a failure here can
+    never roll back an issued invoice.
+    """</span>
+    <span class="k">try</span>:
+        <span class="k">for</span> recipient <span class="k">in</span> invoice_recipients(invoice):
+            msg = EmailMultiAlternatives(
+                subject=f<span class="s">'Invoice {invoice.number} — {invoice.period_start:%B %Y}'</span>,
+                body=render_invoice_text(invoice),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[recipient],
+            )
+            msg.attach_alternative(render_invoice_html(invoice), <span class="s">'text/html'</span>)
+            msg.send()
+    <span class="k">except</span> Exception <span class="k">as</span> exc:  <span class="c"># SMTP is a network boundary</span>
+        invoice.delivery_status = Invoice.DELIVERY_FAILED
+        invoice.delivery_error = str(exc)[:2000]
+        invoice.save(update_fields=[<span class="s">'delivery_status'</span>, <span class="s">'delivery_error'</span>])
+        <span class="k">return</span>
+    invoice.delivery_status = Invoice.DELIVERY_SENT
+    invoice.delivered_at = timezone.now()
+    invoice.delivery_error = <span class="s">''</span>
+    invoice.save(update_fields=[<span class="s">'delivery_status'</span>, <span class="s">'delivered_at'</span>, <span class="s">'delivery_error'</span>])</code></pre>
+
+  <div class="callout ok">
+    <span class="label">The answer to the transaction-boundary question, in one sentence</span>
+    <p>
+      The invoice is committed first and is authoritative; delivery is a best-effort side effect that
+      is recorded on the invoice (<code>pending → sent | failed</code>) so it can be retried, and a
+      delivery failure is never allowed to fail the billing run.
+    </p>
+  </div>
+
+  <div class="callout warn">
+    <span class="label">Settings gap you will hit</span>
+    <p>
+      <code>config/settings.py</code> sets <code>EMAIL_HOST</code>/<code>EMAIL_PORT</code> but
+      <strong>not</strong> <code>DEFAULT_FROM_EMAIL</code>. Django falls back to
+      <code>webmaster@localhost</code>, which Mailpit accepts but looks wrong. Add
+      <code>DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='billing@yunojuno.test')</code>
+      as a one-line settings change and mention it in the notes. It is a genuine blocker for a
+      legible email, not a refactor.
+    </p>
+  </div>
+</div>
+
+<div class="step is-done">
+  <h3><span class="num">5</span> Serializers <span class="done">✅</span></h3>
+  <div class="file">backend/billing/serializers.py <span class="muted">(new)</span></div>
+<pre><code><span class="k">from</span> rest_framework <span class="k">import</span> serializers
+
+<span class="k">from</span> .models <span class="k">import</span> Invoice, InvoiceLineItem
+
+
+<span class="k">class</span> InvoiceLineItemSerializer(serializers.ModelSerializer):
+    <span class="k">class</span> Meta:
+        model = InvoiceLineItem
+        fields = [<span class="s">'id'</span>, <span class="s">'date'</span>, <span class="s">'description'</span>, <span class="s">'hours'</span>, <span class="s">'daily_rate'</span>, <span class="s">'amount'</span>]
+
+
+<span class="k">class</span> InvoiceSerializer(serializers.ModelSerializer):
+    <span class="s">"""List shape: enough to render a row and a total, no line items."""</span>
+    company_name = serializers.CharField(source=<span class="s">'company.name'</span>, read_only=<span class="k">True</span>)
+    freelancer_name = serializers.CharField(source=<span class="s">'freelancer.name'</span>, read_only=<span class="k">True</span>)
+
+    <span class="k">class</span> Meta:
+        model = Invoice
+        fields = [
+            <span class="s">'id'</span>, <span class="s">'number'</span>, <span class="s">'company'</span>, <span class="s">'company_name'</span>,
+            <span class="s">'freelancer'</span>, <span class="s">'freelancer_name'</span>, <span class="s">'period_start'</span>, <span class="s">'period_end'</span>,
+            <span class="s">'subtotal'</span>, <span class="s">'tax'</span>, <span class="s">'total'</span>, <span class="s">'currency'</span>,
+            <span class="s">'status'</span>, <span class="s">'delivery_status'</span>, <span class="s">'created_at'</span>,
+        ]
+
+
+<span class="k">class</span> InvoiceDetailSerializer(InvoiceSerializer):
+    line_items = InvoiceLineItemSerializer(many=<span class="k">True</span>, read_only=<span class="k">True</span>)
+
+    <span class="k">class</span> Meta(InvoiceSerializer.Meta):
+        fields = InvoiceSerializer.Meta.fields + [
+            <span class="s">'line_items'</span>, <span class="s">'contract_start'</span>, <span class="s">'contract_end'</span>,
+            <span class="s">'delivered_at'</span>, <span class="s">'delivery_error'</span>,
+        ]</code></pre>
+  <p>
+    Two serializers because the list endpoint is called on every page load and should not ship every
+    line item of every invoice. The detail endpoint is where line items belong.
+  </p>
+</div>
+
+<div class="step is-done">
+  <h3><span class="num">6</span> Replace the stub views <span class="done">✅</span></h3>
+  <div class="file">backend/billing/views.py</div>
+  <div class="why">
+    <strong>Why keep <code>APIView</code>?</strong> Consistency with <code>contracts/views.py</code>,
+    and it guarantees the exact response shapes the frontend expects. Note the deliberate choice to
+    return <code>200</code> (not <code>201</code>) from the run endpoint: the UI treats it as an
+    action result, not a resource creation, and a re-run that creates zero invoices is a success, not
+    an error.
+  </div>
+
+<pre><code><span class="k">from</span> rest_framework <span class="k">import</span> status
+<span class="k">from</span> rest_framework.permissions <span class="k">import</span> IsAuthenticated
+<span class="k">from</span> rest_framework.response <span class="k">import</span> Response
+<span class="k">from</span> rest_framework.views <span class="k">import</span> APIView
+
+<span class="k">from</span> .models <span class="k">import</span> Invoice
+<span class="k">from</span> .serializers <span class="k">import</span> InvoiceDetailSerializer, InvoiceSerializer
+<span class="k">from</span> .services <span class="k">import</span> month_bounds, run_billing
+
+
+<span class="k">def</span> invoices_for_user(user):
+    <span class="s">"""Same role-branching pattern as contracts/views.py."""</span>
+    <span class="k">if</span> hasattr(user, <span class="s">'company_admin'</span>):
+        <span class="k">return</span> Invoice.objects.filter(company=user.company_admin.company)
+    <span class="k">if</span> hasattr(user, <span class="s">'freelancer'</span>):
+        <span class="k">return</span> Invoice.objects.filter(freelancer=user.freelancer)
+    <span class="k">return</span> Invoice.objects.none()
+
+
+<span class="k">class</span> BillingRunView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    <span class="k">def</span> post(self, request):
+        <span class="k">if</span> not hasattr(request.user, <span class="s">'company_admin'</span>):
+            <span class="k">return</span> Response(
+                {<span class="s">'detail'</span>: <span class="s">'Only company admins can run billing.'</span>},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        month = request.data.get(<span class="s">'month'</span>, <span class="s">''</span>)
+        <span class="k">try</span>:
+            run = run_billing(month, triggered_by=request.user)
+        <span class="k">except</span> ValueError <span class="k">as</span> exc:
+            <span class="k">return</span> Response({<span class="s">'month'</span>: str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        <span class="k">return</span> Response({
+            <span class="s">'run_id'</span>: str(run.id),
+            <span class="s">'invoices_generated'</span>: run.invoices_generated,
+            <span class="s">'invoices_skipped'</span>: run.invoices_skipped,
+            <span class="s">'status'</span>: run.status,
+        })
+
+
+<span class="k">class</span> InvoiceListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    <span class="k">def</span> get(self, request):
+        qs = invoices_for_user(request.user).select_related(<span class="s">'company'</span>, <span class="s">'freelancer'</span>)
+        month = request.query_params.get(<span class="s">'month'</span>)
+        <span class="k">if</span> month:
+            <span class="k">try</span>:
+                start, end = month_bounds(month)
+            <span class="k">except</span> ValueError <span class="k">as</span> exc:
+                <span class="k">return</span> Response({<span class="s">'month'</span>: str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            qs = qs.filter(period_start=start)
+        <span class="c"># Plain list — the frontend calls .map() on the response directly.</span>
+        <span class="k">return</span> Response(InvoiceSerializer(qs, many=<span class="k">True</span>).data)
+
+
+<span class="k">class</span> InvoiceDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    <span class="k">def</span> get(self, request, pk):
+        <span class="k">try</span>:
+            invoice = (
+                invoices_for_user(request.user)
+                .select_related(<span class="s">'company'</span>, <span class="s">'freelancer'</span>)
+                .prefetch_related(<span class="s">'line_items'</span>)
+                .get(pk=pk)
+            )
+        <span class="k">except</span> Invoice.DoesNotExist:
+            <span class="k">return</span> Response({<span class="s">'detail'</span>: <span class="s">'Not found.'</span>}, status=status.HTTP_404_NOT_FOUND)
+        <span class="k">return</span> Response(InvoiceDetailSerializer(invoice).data)</code></pre>
+
+  <div class="callout">
+    <span class="label">Why <code>period_start=start</code> and not a range</span>
+    <p>
+      <code>period_start</code> is always the 1st of the month, so equality is exact and uses the
+      <code>(company, period_start)</code> index cleanly. A <code>__range</code> would also work but
+      implies the column might hold other values, which the model contract forbids.
+    </p>
+  </div>
+</div>
+
+<div class="step is-done">
+  <h3><span class="num">7</span> Register in the admin <span class="done">✅</span></h3>
+  <div class="file">backend/billing/admin.py <span class="muted">(new)</span></div>
+  <p>
+    Every other app in this codebase has an <code>admin.py</code>; billing currently does not. Finance
+    will want to look at an invoice without curl. Inline the line items, read-only.
+  </p>
+
+  <div class="why">
+    <strong>Why the admin matters here, beyond consistency.</strong> The Billing page is the primary
+    interface, but when an invoice looks wrong — a missing line item, a delivery that failed, an odd
+    total — the admin is where you inspect it. Critically, it is the only place
+    <code>delivery_status</code> / <code>delivery_error</code> are visible. We built those fields so a
+    failed email is recoverable; without a UI they are write-only. <code>list_filter</code> on
+    <code>delivery_status</code> turns "which invoices failed to send?" into one click — the manual
+    half of the retry story deferred in §8.
+  </div>
+
+  <div class="why">
+    <strong>Why line items are read-only.</strong> Line items are an immutable snapshot (§3.4). If the
+    admin allowed editing <code>hours</code> or <code>amount</code>, you could silently corrupt an
+    issued invoice and leave the stored <code>subtotal</code>/<code>total</code> disagreeing with the
+    lines. <code>can_delete = False</code> plus <code>readonly_fields</code> enforces the snapshot
+    invariant in the UI layer, not just by convention. <code>extra = 0</code> because invoices are
+    created by the billing run, never by hand.
+  </div>
+
+  <div class="callout warn">
+    <span class="label">Tightening beyond the original plan</span>
+    <p>
+      A bare <code>admin.site.register(BillingRun)</code> lets a user <em>edit</em> an audit record —
+      change its status, period or counters. That is wrong for the same reason
+      <code>BillingRun.status</code> is system-owned (see §3.3 and the earlier discussion): a run
+      record is evidence of what happened, not state you mutate. <code>BillingRunAdmin</code> below
+      makes runs fully read-only — inspectable, not editable.
+    </p>
+  </div>
+<pre><code><span class="k">from</span> django.contrib <span class="k">import</span> admin
+
+<span class="k">from</span> .models <span class="k">import</span> BillingRun, Invoice, InvoiceLineItem
+
+
+<span class="k">class</span> InvoiceLineItemInline(admin.TabularInline):
+    model = InvoiceLineItem
+    extra = 0
+    readonly_fields = [<span class="s">'date'</span>, <span class="s">'description'</span>, <span class="s">'hours'</span>, <span class="s">'daily_rate'</span>, <span class="s">'amount'</span>]
+    can_delete = <span class="k">False</span>
+
+
+<span class="k">@admin.register</span>(Invoice)
+<span class="k">class</span> InvoiceAdmin(admin.ModelAdmin):
+    list_display = [<span class="s">'number'</span>, <span class="s">'company'</span>, <span class="s">'freelancer'</span>, <span class="s">'period_start'</span>, <span class="s">'total'</span>, <span class="s">'delivery_status'</span>]
+    list_filter = [<span class="s">'period_start'</span>, <span class="s">'delivery_status'</span>, <span class="s">'status'</span>]
+    search_fields = [<span class="s">'number'</span>, <span class="s">'company__name'</span>, <span class="s">'freelancer__name'</span>]
+    inlines = [InvoiceLineItemInline]
+
+
+<span class="k">@admin.register</span>(BillingRun)
+<span class="k">class</span> BillingRunAdmin(admin.ModelAdmin):
+    <span class="s">"""Runs are an audit trail: inspectable, never editable."""</span>
+    list_display = [<span class="s">'id'</span>, <span class="s">'period_start'</span>, <span class="s">'status'</span>, <span class="s">'invoices_generated'</span>, <span class="s">'invoices_skipped'</span>, <span class="s">'created_at'</span>]
+    list_filter = [<span class="s">'status'</span>, <span class="s">'period_start'</span>]
+    readonly_fields = [f.name <span class="k">for</span> f <span class="k">in</span> BillingRun._meta.fields]
+
+    <span class="k">def</span> has_add_permission(self, request):
+        <span class="k">return</span> <span class="k">False</span>
+
+    <span class="k">def</span> has_change_permission(self, request, obj=<span class="k">None</span>):
+        <span class="k">return</span> <span class="k">False</span></code></pre>
+</div>
+
+<div class="step">
+  <h3><span class="num">8</span> Optional: a management command for scheduled runs <span class="pill opt">optional</span></h3>
+  <div class="file">backend/billing/management/commands/run_billing.py <span class="muted">(new)</span></div>
+  <div class="why">
+    <strong>Why include it?</strong> The brief says the endpoint "will get retried, scheduled". A thin
+    command proves the service layer is genuinely reusable and gives the reviewer an obvious place to
+    plug in cron. It is ~15 lines. Skip it if time is tight — but if you skip it, say why.
+  </div>
+<pre><code><span class="k">import</span> datetime
+<span class="k">from</span> django.core.management.base <span class="k">import</span> BaseCommand
+<span class="k">from</span> billing.services <span class="k">import</span> run_billing
+
+
+<span class="k">class</span> Command(BaseCommand):
+    help = <span class="s">'Run monthly billing for a given month (defaults to last month).'</span>
+
+    <span class="k">def</span> add_arguments(self, parser):
+        parser.add_argument(<span class="s">'--month'</span>, default=<span class="k">None</span>, help=<span class="s">'YYYY-MM'</span>)
+
+    <span class="k">def</span> handle(self, *args, **options):
+        month = options[<span class="s">'month'</span>]
+        <span class="k">if</span> <span class="k">not</span> month:
+            today = datetime.date.today()
+            first = today.replace(day=1)
+            month = (first - datetime.timedelta(days=1)).strftime(<span class="s">'%Y-%m'</span>)
+        run = run_billing(month)
+        self.stdout.write(self.style.SUCCESS(
+            f<span class="s">'Run {run.id}: {run.invoices_generated} generated, {run.invoices_skipped} skipped.'</span>
+        ))</code></pre>
+</div>
+
+<div class="step is-done">
+  <h3><span class="num">9</span> Add billing fixtures to the shared conftest <span class="done">✅</span></h3>
+  <div class="file">backend/conftest.py</div>
+  <p>
+    The existing fixtures cover contracts and one submitted entry. Add approved entries in a known
+    month, plus a second freelancer, so the billing tests read clearly. Keep them additive — do not
+    modify the existing fixtures, other apps' tests depend on them.
+  </p>
+<pre><code><span class="k">@pytest.fixture</span>
+<span class="k">def</span> approved_entries(active_contract):
+    <span class="s">"""Three approved entries in May 2026 at 600/day -> 8h, 7.5h, 8h."""</span>
+    <span class="k">return</span> [
+        TimesheetEntry.objects.create(
+            contract=active_contract, date=datetime.date(2026, 5, d),
+            hours=Decimal(h), status=<span class="s">'approved'</span>,
+        )
+        <span class="k">for</span> d, h <span class="k">in</span> [(4, <span class="s">'8.0'</span>), (5, <span class="s">'7.5'</span>), (6, <span class="s">'8.0'</span>)]
+    ]</code></pre>
+  <div class="callout">
+    <span class="label">Expected arithmetic for the fixture above</span>
+    <p>
+      <code>8.00 × 600.00 = 4800.00</code>, <code>7.50 × 600.00 = 4500.00</code>,
+      <code>8.00 × 600.00 = 4800.00</code> → subtotal <strong>14100.00</strong>. Assert exact
+      <code>Decimal</code> equality, not <code>float</code>.
+    </p>
+  </div>
+</div>
+
+<div class="step is-done">
+  <h3><span class="num">10</span> Write the tests <span class="done">✅</span></h3>
+  <div class="file">backend/billing/tests/__init__.py, backend/billing/tests/test_billing.py <span class="muted">(new)</span></div>
+  <p>See the <a href="#tests">test plan</a> below for the full list. Use
+    <code>django.core.mail.outbox</code> (the test runner switches to the locmem backend
+    automatically) rather than mocking <code>send</code>.</p>
+</div>
+
+<div class="step is-done">
+  <h3><span class="num">11</span> Run everything and re-check the frontend by hand <span class="done">✅</span></h3>
+<pre><code>cd backend
+uv run python manage.py makemigrations billing
+uv run python manage.py migrate
+uv run pytest -q            <span class="c"># expect 41 existing + new, all green</span>
+uv run python manage.py seed   <span class="c"># idempotent; gives you real data to click through</span></code></pre>
+  <p>
+    Then <code>task backend</code> + <code>task frontend</code>, log in as
+    <code>admin@northstar.test</code>, go to <code>/billing</code>, pick last month, press
+    <strong>Run billing</strong>, and confirm the invoice list populates and the detail page shows
+    line items. Check <code>localhost:8025</code> for the two emails.
+  </p>
+</div>
+
+<h2 id="tests">5. Test plan</h2>
+
+<p>
+  The brief explicitly grades "what you choose to test". Test the invariants, not the plumbing. Every
+  test below maps to a decision in §3.
+</p>
+
+<table>
+  <thead><tr><th>#</th><th>Test</th><th>Asserts</th><th>Guards decision</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Run creates one invoice per company × freelancer</td><td>Two freelancers on the same contract company → 2 invoices; same freelancer on two companies → 2 invoices</td><td>§3.2 grain</td></tr>
+    <tr><td>2</td><td>Only <code>approved</code> entries are billed</td><td><code>draft</code>/<code>submitted</code>/<code>rejected</code> entries in the month produce no line items</td><td>§3.5 selection</td></tr>
+    <tr><td>3</td><td><strong>Re-running is idempotent</strong></td><td>Second POST returns <code>invoices_generated == 0</code>, <code>invoices_skipped == 1</code>, and <code>Invoice.objects.count()</code> is unchanged</td><td>§3.3</td></tr>
+    <tr><td>4</td><td>Concurrent-ish double insert is caught</td><td>Calling <code>_create_invoice</code> twice for the same pair raises <code>IntegrityError</code> (i.e. the constraint is real, not just app logic)</td><td>§3.3</td></tr>
+    <tr><td>5</td><td><strong>Partial month</strong></td><td>Contract 12 Feb – 18 Mar with approved entries on 10 Feb, 5 Mar, 20 Mar: March run bills <em>only</em> the 5 Mar entry; February run bills only 10 Feb</td><td>§3.5</td></tr>
+    <tr><td>6</td><td>Totals are exact decimals</td><td>Subtotal and total equal the expected <code>Decimal</code>; <code>total == subtotal + tax</code></td><td>§3.1</td></tr>
+    <tr><td>7</td><td>Line items snapshot the rate</td><td>Change the contract's <code>daily_rate</code> after the run; the invoice's line item <code>amount</code> is unchanged</td><td>§3.4</td></tr>
+    <tr><td>8</td><td>Two emails, correct recipients</td><td><code>len(mail.outbox) == 2</code>; one to <code>company.billing_email</code>, one to <code>freelancer.user.email</code>; neither leaks the other address</td><td>§3.8</td></tr>
+    <tr><td>9</td><td><strong>Email failure does not roll back the invoice</strong></td><td>Patch <code>deliver_invoice</code>'s send to raise → invoice still exists, <code>delivery_status == 'failed'</code>, endpoint returns 200</td><td>§3.6 — the headline question</td></tr>
+    <tr><td>10</td><td>Bad <code>month</code> → 400</td><td><code>""</code>, <code>"2026-13"</code>, <code>"nope"</code> all return 400 with a <code>month</code> key</td><td>input validation</td></tr>
+    <tr><td>11</td><td>Freelancer cannot run billing</td><td>403</td><td>§3.9</td></tr>
+    <tr><td>12</td><td>List is scoped and filterable</td><td>Admin sees only own-company invoices; <code>?month=2026-05</code> filters; response is a <code>list</code>, not a dict</td><td>§2 + §3.9</td></tr>
+    <tr><td>13</td><td>Detail is scoped</td><td>Other company's invoice → 404; own → 200 with <code>line_items</code></td><td>§3.9</td></tr>
+    <tr><td>14</td><td>Empty month</td><td>No approved entries → <code>invoices_generated == 0</code>, list returns <code>[]</code>, no emails sent</td><td>empty state</td></tr>
+  </tbody>
+</table>
+
+<h4>Skeleton for the two most important tests</h4>
+<pre><code><span class="k">import</span> datetime
+<span class="k">from</span> decimal <span class="k">import</span> Decimal
+
+<span class="k">import</span> pytest
+<span class="k">from</span> django.core <span class="k">import</span> mail
+
+<span class="k">from</span> billing.models <span class="k">import</span> Invoice
+<span class="k">from</span> contracts.models <span class="k">import</span> Contract, TimesheetEntry
+
+
+<span class="k">@pytest.mark.django_db</span>
+<span class="k">def</span> test_rerun_is_idempotent(admin_client, active_contract):
+    TimesheetEntry.objects.create(
+        contract=active_contract, date=datetime.date(2026, 5, 4),
+        hours=Decimal(<span class="s">'8.0'</span>), status=<span class="s">'approved'</span>,
+    )
+
+    first = admin_client.post(<span class="s">'/api/billing/runs/'</span>, {<span class="s">'month'</span>: <span class="s">'2026-05'</span>}, format=<span class="s">'json'</span>)
+    assert first.status_code == 200
+    assert first.data[<span class="s">'invoices_generated'</span>] == 1
+
+    second = admin_client.post(<span class="s">'/api/billing/runs/'</span>, {<span class="s">'month'</span>: <span class="s">'2026-05'</span>}, format=<span class="s">'json'</span>)
+    assert second.status_code == 200
+    assert second.data[<span class="s">'invoices_generated'</span>] == 0
+    assert second.data[<span class="s">'invoices_skipped'</span>] == 1
+    assert Invoice.objects.count() == 1
+
+
+<span class="k">@pytest.mark.django_db</span>
+<span class="k">def</span> test_email_failure_does_not_roll_back_invoice(admin_client, active_contract, monkeypatch):
+    TimesheetEntry.objects.create(
+        contract=active_contract, date=datetime.date(2026, 5, 4),
+        hours=Decimal(<span class="s">'8.0'</span>), status=<span class="s">'approved'</span>,
+    )
+
+    <span class="k">def</span> boom(*args, **kwargs):
+        <span class="k">raise</span> OSError(<span class="s">'SMTP is down'</span>)
+
+    monkeypatch.setattr(<span class="s">'django.core.mail.EmailMultiAlternatives.send'</span>, boom)
+
+    resp = admin_client.post(<span class="s">'/api/billing/runs/'</span>, {<span class="s">'month'</span>: <span class="s">'2026-05'</span>}, format=<span class="s">'json'</span>)
+
+    assert resp.status_code == 200
+    invoice = Invoice.objects.get()
+    assert invoice.delivery_status == Invoice.DELIVERY_FAILED
+    assert <span class="s">'SMTP is down'</span> <span class="k">in</span> invoice.delivery_error</code></pre>
+
+<div class="callout ok">
+  <span class="label">Why test 9 is the one the reviewer will look for</span>
+  <p>
+    The brief names it directly: "what happens if the email send fails <em>after</em> the invoice row
+    is committed?" A test that proves the invoice survives and the failure is recorded is the single
+    clearest demonstration that you understood the transaction boundary rather than just writing code
+    that happens to work when SMTP is up.
+  </p>
+</div>
+
+<h2 id="manual">6. Manual verification</h2>
+<ol>
+  <li><code>task up</code> then <code>task seed</code> (both idempotent).</li>
+  <li><code>task backend</code>, <code>task frontend</code>.</li>
+  <li>Log in as <code>admin@northstar.test</code> / <code>testpass123</code>.</li>
+  <li>Go to <code>/billing</code>, pick <strong>last month</strong> (the seed guarantees approved entries there), press <strong>Run billing</strong>. Expect "Billing run complete — N invoice(s) generated."</li>
+  <li>Press it again. Expect "0 invoice(s) generated" and no duplicate rows — the idempotency demo.</li>
+  <li>Click an invoice → detail page shows line items and totals.</li>
+  <li>Open <code>localhost:8025</code> → expect two emails per invoice, one to the company's
+      <code>billing_email</code>, one to the freelancer.</li>
+  <li>Log in as <code>alex@freelance.test</code> → <code>/billing</code> shows only Alex's invoices.</li>
+</ol>
+
+<h2 id="notes">7. What to write in CANDIDATE_NOTES.md</h2>
+<p>Keep it to the requested half-page–one-page. The specific points worth making:</p>
+<ul>
+  <li><strong>Why Task B:</strong> it is the task with the most consequential failure modes (money,
+      idempotency, transaction boundaries) and the least UI surface, so the engineering is what gets
+      judged. It also composes cleanly with A and C later.</li>
+  <li><strong>Grain:</strong> Company × Freelancer × month, enforced by a unique constraint, keyed on
+      <code>period_start</code> as a date.</li>
+  <li><strong>Idempotency:</strong> database constraint + <code>IntegrityError</code> handling, not a
+      read-then-write check. Say explicitly that this is the difference between idempotent and
+      idempotent under concurrency.</li>
+  <li><strong>Partial months:</strong> selection is on entry date, so contract start/end dates never
+      need special-casing.</li>
+  <li><strong>Transaction boundary:</strong> invoice commits first, email is a post-commit side effect
+      with a recorded <code>delivery_status</code>; a send failure cannot roll back or fail the run.</li>
+  <li><strong>Snapshot vs join:</strong> line items copy hours/rate/amount so invoices are immutable
+      history and are PDF-ready.</li>
+  <li><strong>Email choice:</strong> two messages (privacy), plain text + HTML alternative.</li>
+  <li><strong>The one settings change</strong> (<code>DEFAULT_FROM_EMAIL</code>) and why.</li>
+  <li><strong>Next steps:</strong> retry/backoff for failed deliveries, a <code>void</code>/credit-note
+      path, VAT, pagination on the list endpoint, PDF rendering behind the existing renderer seam,
+      and locking the run (advisory lock or a unique "running" row per period) if two admins click
+      simultaneously.</li>
+</ul>
+
+<h2 id="cut">8. Deliberately out of scope</h2>
+<table>
+  <thead><tr><th>Cut</th><th>Reason</th></tr></thead>
+  <tbody>
+    <tr><td>VAT / tax calculation</td><td>No tax rules exist in the domain; inventing them would be guessing. Field present at 0.00.</td></tr>
+    <tr><td>PDF / e-invoice generation</td><td>Brief explicitly says email is the stand-in. The renderer seam is left in place.</td></tr>
+    <tr><td>Retry queue for failed emails</td><td>Recorded as <code>delivery_status='failed'</code> so it is retryable; an actual retry worker is a bigger design (Celery/RQ) than the task warrants. Named in next steps.</td></tr>
+    <tr><td>Pagination on <code>/api/invoices/</code></td><td>Would break the wired frontend. Noted as a next step for when the UI is changed alongside it.</td></tr>
+    <tr><td>Voiding / credit notes</td><td>Status field exists; the workflow does not. Out of scope for a first billing run.</td></tr>
+    <tr><td>Fixing the pre-existing rough edges elsewhere</td><td>Brief says not to. The <code>contract_id</code> redundancy in <code>TimesheetEntrySerializer</code> and the TODO comments are left alone.</td></tr>
+    <tr><td>Frontend changes</td><td>Explicitly "fully wired". The only frontend-adjacent work is honouring its exact response shapes.</td></tr>
+  </tbody>
+</table>
+
+<footer>
+  Plan derived from the current <code>README.md</code>, the pre-<code>e48c330</code> history, and a
+  read of <code>backend/{billing,contracts,accounts,config}</code> plus
+  <code>frontend/src/{api/billing.ts,pages/Billing.tsx,pages/InvoiceDetail.tsx}</code>.
+  Baseline: 41 tests passing.
+</footer>
+
+</main>
+</body>
+</html>
