@@ -78,6 +78,7 @@ EMAIL_HOST = config('EMAIL_HOST', default='localhost')
 EMAIL_PORT = config('EMAIL_PORT', default=1025, cast=int)
 EMAIL_USE_TLS = False
 EMAIL_USE_SSL = False
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='billing@yunojuno.test')
 
 STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
